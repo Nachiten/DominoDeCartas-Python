@@ -2,18 +2,84 @@ import itertools
 import random
 
 
-def funcionOrdenamiento(_carta):
-    # Ordenar primero por palo, luego por numero, ascendente
-    palo = getShortPalo(_carta)
-    indexPalo = palosCartasCorto.index(palo)
+def obtenerCartasValidasParaMesa():
+    cartasPosibles = []
 
-    valor = getValor(_carta)
+    for palo in palosCartas:
+        # Obtengo las cartas pertenecientes a "palo"
+        cartasDePalo = list(filter(lambda x: getPaloCarta(x) == palo, cartasEnMesa))
+
+        # Si no hay ninguna carta de ese palo, solo se puede poner 7
+        if not cartasDePalo:
+            cartasPosibles.append(("7", palo))
+        # Si solo el 7 está puesto, solo se puede poner el 6
+        elif len(cartasDePalo) == 1 and getValorCarta(cartasDePalo[0]) == '7':
+            cartasPosibles.append(("6", palo))
+        # En cualquier otro caso, está puesto el 6, el 7, y quizá más cartas
+        else:
+            # Ordenar la lista por valor (el palo es igual siempre)
+            cartasDePalo = sorted(cartasDePalo, key=funcionOrdenamientoPorValor)
+
+            # Obtener carta de menor valor (primera en lista ordenada)
+            menorCarta = cartasDePalo[0]
+            # Si la menor carta no es la primera (A)
+            if not getValorCarta(menorCarta) == 'A':
+                indexValorMenorCarta = valoresCartas.index(getValorCarta(menorCarta))
+                cartasPosibles.append((valoresCartas[indexValorMenorCarta - 1], palo))
+
+            # Obtener carta de mayor valor (última en lista ordenada)
+            mayorCarta = cartasDePalo[len(cartasDePalo) - 1]
+            # Si la mayor carta no es la última (K)
+            if not getValorCarta(mayorCarta) == 'K':
+                indexValorMayorCarta = valoresCartas.index(getValorCarta(mayorCarta))
+                cartasPosibles.append((valoresCartas[indexValorMayorCarta + 1], palo))
+
+    print("Cartas posibles para mesa: ")
+    printListaCartas(cartasPosibles)
+    return cartasPosibles
+
+
+# Gets an input number from the user within min and max value INCLUSIVE
+def obtenerInputNumeroEntreValores(nombreValor, minValue, maxValue):
+    if minValue > maxValue:
+        print("ERROR: minValue debe ser menor a maxValue")
+        return 0
+
+    inputValue = 0
+
+    while True:
+        error = False
+        try:
+            inputValue = int(input('Ingrese %s: ' % nombreValor))
+            if not minValue <= inputValue <= maxValue:
+                error = True
+        except ValueError:
+            error = True
+
+        if error:
+            print("Numero erróneo, debe ser un numero entre %d y %d." % (minValue, maxValue))
+        else:
+            break
+    return inputValue
+
+
+def funcionOrdenamientoPorPaloYValor(_carta):
+    # Ordenar primero por palo, luego por numero, ascendente
+    palo = getPaloCarta(_carta)
+    indexPalo = palosCartas.index(palo)
+
+    valor = getValorCarta(_carta)
     indexValor = valoresCartas.index(valor)
     return indexPalo * 100 + indexValor
 
 
+def funcionOrdenamientoPorValor(_carta):
+    # Ordenar solo por valor (no tener en cuenta palo)
+    return valoresCartas.index(getValorCarta(_carta))
+
+
 def ordenarCartas(_listaCartas):
-    return sorted(_listaCartas, key=funcionOrdenamiento)
+    return sorted(_listaCartas, key=funcionOrdenamientoPorPaloYValor)
 
 
 def printListaCartas(_listaCartas, withIndex=False):
@@ -24,91 +90,93 @@ def printListaCartas(_listaCartas, withIndex=False):
             print('%s' % (toLongString(_listaCartas[_i])))
 
 
-def getValor(_carta):
+def getValorCarta(_carta):
     return _carta[0]
 
 
-def getShortPalo(_carta):
+def getPaloCarta(_carta):
     return _carta[1]
 
 
-def getPaloLong(_carta):
-    return palosCartasLargo[palosCartasCorto.index(getShortPalo(_carta))]
+def getPaloCartaLargo(_carta):
+    return palosCartasLargo[palosCartas.index(getPaloCarta(_carta))]
 
 
 def toShortString(_carta):
-    return getValor(_carta) + getShortPalo(_carta)
+    return getValorCarta(_carta) + getPaloCarta(_carta)
 
 
 def toLongString(_carta):
-    return getValor(_carta) + ' de ' + getPaloLong(_carta)
+    return getValorCarta(_carta) + ' de ' + getPaloCartaLargo(_carta)
 
 
 valoresCartas = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 # D = Diamante, C = Corazon, P = Picas, T = Trébol
-palosCartasCorto = ['D', 'C', 'P', 'T']
+palosCartas = ['D', 'C', 'P', 'T']
 palosCartasLargo = ['Diamante', 'Corazon', 'Picas', 'Trébol']
 
-mazo = list(itertools.product(valoresCartas, palosCartasCorto))
+mazo = list(itertools.product(valoresCartas, palosCartas))
 
 random.shuffle(mazo)
 
 # printListaCartas(mazo)
 
 # Elegir cantidad de jugadores, debe ser número entre 3 y 5
-cantidadJugadores = 0
-
-while True:
-    error = False
-    try:
-        cantidadJugadores = int(input('Ingrese cantidad de jugadores: '))
-        if not 3 <= cantidadJugadores <= 5:
-            error = True
-    except ValueError:
-        error = True
-
-    if error:
-        print("Numero erróneo, debe ser un numero entre 3 y 5.")
-    else:
-        break
+cantidadMinimaJugadores = 3
+cantidadMaximaJugadores = 5
+cantidadJugadores = obtenerInputNumeroEntreValores("la cantidad de jugadores",
+                                                   cantidadMinimaJugadores,
+                                                   cantidadMaximaJugadores)
 
 # Crear lista de cartas por jugador
 # Cada elemento en esta lista es una lista de las cartas de dicho jugador
 cartasPorJugador = []
-cartasEnLaMesa = []
+cartasEnMesa = []
 
-cantidadCartas = len(mazo)
+cantidadCartasTotales = len(mazo)
 
 # Crear la lista de cartas de cada jugador
 for i in range(cantidadJugadores):
     cartasPorJugador.append([])
 
 # Repartir las cartas
-for i in range(cantidadCartas):
+for i in range(cantidadCartasTotales):
     indexJugador = i % cantidadJugadores
     cartasPorJugador[indexJugador].append(mazo.pop())
 
-indiceTurnoJugador = 0
-cantidadCartasJugador = len(cartasPorJugador[indiceTurnoJugador])
-cartasJugador = cartasPorJugador[indiceTurnoJugador]
+contadorTurnoJugador = 0
 
-# Ordenar cartas del jugador
-cartasJugador = ordenarCartas(cartasJugador)
-
-# El primer jugador es el humano, mostrarle sus cartas y hacerlo elegir una con un index
-print('[Es su turno] Elija que carta jugar. Sus cartas son:')
-printListaCartas(cartasJugador, True)
-
-indiceCartaElegida = -1
-
-# Pedir un index de la carta elegida, verificar que esté entre 0 y cantidadCartasJugador
-# Volver a pedir el índice mientras no sea válido
 while True:
-    indiceCartaElegida = int(input('Ingrese el numero de la carta que desea jugar: '))
-    if not (cantidadCartasJugador > indiceCartaElegida >= 0):
-        print('ERROR: El numero de carta ingresado no es valido')
-    else:
-        break
+    indiceTurnoJugador = contadorTurnoJugador % cantidadJugadores
+    #cartasJugador = cartasPorJugador[indiceTurnoJugador]
+    cantidadCartasJugador = len(cartasPorJugador[indiceTurnoJugador])
 
-# Quitar la carta de la mano del jugador y ponerla en la mesa
-cartasEnLaMesa.append(cartasPorJugador[indiceTurnoJugador].pop(indiceCartaElegida))
+    # Ordenar cartas del jugador
+    cartasPorJugador[indiceTurnoJugador] = ordenarCartas(cartasPorJugador[indiceTurnoJugador])
+
+    # El primer jugador es el humano, mostrarle sus cartas y hacerlo elegir una con un index
+    print('[Turno de: %s] Elija que carta jugar. Sus %d cartas son:' % (indiceTurnoJugador, cantidadCartasJugador))
+    printListaCartas(cartasPorJugador[indiceTurnoJugador], True)
+
+    # Pedir un index de la carta elegida, verificar que esté entre 0 y cantidadCartasJugador
+    # Volver a pedir el índice mientras no sea válido
+    indiceCartaElegida = obtenerInputNumeroEntreValores('el numero de la carta que desea jugar (-1 para pasar)',
+                                                        -1,
+                                                        cantidadCartasJugador - 1)
+
+    # Si puso -1 es porque pasa
+    if indiceCartaElegida > -1:
+        # Quitar la carta de la mano del jugador y ponerla en la mesa
+        cartasEnMesa.append(cartasPorJugador[indiceTurnoJugador].pop(indiceCartaElegida))
+
+    obtenerCartasValidasParaMesa()
+
+    # Ordenar la mesa
+    cartasEnMesa = ordenarCartas(cartasEnMesa)
+
+    # Mostrar la mesa
+    print("Las cartas en la mesa son: ")
+    printListaCartas(cartasEnMesa)
+
+    # Incrementar turno
+    contadorTurnoJugador += 1

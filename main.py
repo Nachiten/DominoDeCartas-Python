@@ -33,9 +33,6 @@ def obtenerCartasValidasParaMesa():
             if not getValorCarta(mayorCarta) == 'K':
                 indexValorMayorCarta = valoresCartas.index(getValorCarta(mayorCarta))
                 cartasPosibles.append((valoresCartas[indexValorMayorCarta + 1], palo))
-
-    print("Cartas posibles para mesa: ")
-    printListaCartas(cartasPosibles)
     return cartasPosibles
 
 
@@ -110,66 +107,85 @@ def toLongString(_carta):
     return getValorCarta(_carta) + ' de ' + getPaloCartaLargo(_carta)
 
 
+# Valores de las cartas y palos
 valoresCartas = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 # D = Diamante, C = Corazon, P = Picas, T = Trébol
 palosCartas = ['D', 'C', 'P', 'T']
 palosCartasLargo = ['Diamante', 'Corazon', 'Picas', 'Trébol']
 
+# Mazo
 mazo = list(itertools.product(valoresCartas, palosCartas))
-
 random.shuffle(mazo)
+cantidadCartasTotales = len(mazo)
 
-# printListaCartas(mazo)
-
-# Elegir cantidad de jugadores, debe ser número entre 3 y 5
+# Elegir cantidad de jugadores, debe ser entre cantidadMinimaJugadores y cantidadMaximaJugadores
 cantidadMinimaJugadores = 3
 cantidadMaximaJugadores = 5
-cantidadJugadores = obtenerInputNumeroEntreValores("la cantidad de jugadores",
-                                                   cantidadMinimaJugadores,
-                                                   cantidadMaximaJugadores)
+cantidadJugadores = 3
+# cantidadJugadores = obtenerInputNumeroEntreValores("la cantidad de jugadores",
+#                                                    cantidadMinimaJugadores,
+#                                                    cantidadMaximaJugadores)
 
 # Crear lista de cartas por jugador
 # Cada elemento en esta lista es una lista de las cartas de dicho jugador
 cartasPorJugador = []
 cartasEnMesa = []
 
-cantidadCartasTotales = len(mazo)
-
 # Crear la lista de cartas de cada jugador
-for i in range(cantidadJugadores):
+for _ in range(cantidadJugadores):
     cartasPorJugador.append([])
 
 # Repartir las cartas
-for i in range(cantidadCartasTotales):
-    indexJugador = i % cantidadJugadores
+for indexCarta in range(cantidadCartasTotales):
+    indexJugador = indexCarta % cantidadJugadores
     cartasPorJugador[indexJugador].append(mazo.pop())
 
 contadorTurnoJugador = 0
 
 while True:
     indiceTurnoJugador = contadorTurnoJugador % cantidadJugadores
-    #cartasJugador = cartasPorJugador[indiceTurnoJugador]
     cantidadCartasJugador = len(cartasPorJugador[indiceTurnoJugador])
 
     # Ordenar cartas del jugador
     cartasPorJugador[indiceTurnoJugador] = ordenarCartas(cartasPorJugador[indiceTurnoJugador])
 
-    # El primer jugador es el humano, mostrarle sus cartas y hacerlo elegir una con un index
-    print('[Turno de: %s] Elija que carta jugar. Sus %d cartas son:' % (indiceTurnoJugador, cantidadCartasJugador))
-    printListaCartas(cartasPorJugador[indiceTurnoJugador], True)
+    while True:
+        # Se muestran las cartas de quien le toca jugar con índice
+        print('[Turno de: %s] Elija que carta jugar. Sus %d cartas son:' % (indiceTurnoJugador, cantidadCartasJugador))
+        printListaCartas(cartasPorJugador[indiceTurnoJugador], True)
 
-    # Pedir un index de la carta elegida, verificar que esté entre 0 y cantidadCartasJugador
-    # Volver a pedir el índice mientras no sea válido
-    indiceCartaElegida = obtenerInputNumeroEntreValores('el numero de la carta que desea jugar (-1 para pasar)',
-                                                        -1,
-                                                        cantidadCartasJugador - 1)
+        # Pedir un index de la carta elegida, verificar que esté entre 0 y cantidadCartasJugador
+        # Volver a pedir el índice mientras no sea válido
+        indiceCartaElegida = obtenerInputNumeroEntreValores('el numero de la carta que desea jugar (-1 para pasar)',
+                                                            -1,
+                                                            cantidadCartasJugador - 1)
 
-    # Si puso -1 es porque pasa
-    if indiceCartaElegida > -1:
-        # Quitar la carta de la mano del jugador y ponerla en la mesa
-        cartasEnMesa.append(cartasPorJugador[indiceTurnoJugador].pop(indiceCartaElegida))
+        # Validar que sea correcto insertar esta carta
+        cartasValidas = obtenerCartasValidasParaMesa()
 
-    obtenerCartasValidasParaMesa()
+        # Elige pasar, entonces se corta el while
+        if indiceCartaElegida == -1:
+            # Si tiene alguna carta en su mano válida en la mesa, entonces no puede pasar
+            tieneCartaValidaEnMano = any(item in cartasValidas for item in cartasPorJugador[indiceTurnoJugador])
+
+            if tieneCartaValidaEnMano:
+                print("No puede pasar, debe jugar una carta.")
+                print("Las cartas posibles para jugar son: ")
+                printListaCartas(cartasValidas)
+                continue
+            break
+
+        cartaElegida = cartasPorJugador[indiceTurnoJugador][indiceCartaElegida]
+
+        # Validar que la carta elegida sea válida para poner en la mesa
+        if cartaElegida in cartasValidas:
+            # Quitar la carta de la mano del jugador y ponerla en la mesa
+            cartasEnMesa.append(cartasPorJugador[indiceTurnoJugador].pop(indiceCartaElegida))
+            break
+        else:
+            print("No se puede jugar esa carta, elija otra")
+            print("Las cartas posibles para jugar son: ")
+            printListaCartas(cartasValidas)
 
     # Ordenar la mesa
     cartasEnMesa = ordenarCartas(cartasEnMesa)

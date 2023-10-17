@@ -1,5 +1,23 @@
 import itertools
 import random
+import time
+
+
+def calcularIndexIACartaElegida(cartasJugadorIA):
+    # Obtener las cartas posibles para la mesa
+    cartasPosibles = obtenerCartasValidasParaMesa()
+
+    # Filtrar las cartasJugadorIA y quedarse con solo las presentes en cartasPosibles
+    cartasJugadorIAPosibles = list(filter(lambda x: x in cartasPosibles, cartasJugadorIA))
+
+    # Si no hay cartas posibles, entonces elige pasar (-1)
+    if not cartasJugadorIAPosibles:
+        return -1
+
+    # Obtener un elemento al azar de cartas posibles
+    cartaElegidaIA = random.choice(cartasJugadorIAPosibles)
+    # Obtiene el índice de la carta elegida en la lista completa de cartas del jugador
+    return cartasJugadorIA.index(cartaElegidaIA)
 
 
 def obtenerCartasValidasParaMesa():
@@ -57,7 +75,21 @@ def obtenerInputNumeroEntreValores(nombreValor, minValue, maxValue):
             print("Numero erróneo, debe ser un numero entre %d y %d." % (minValue, maxValue))
         else:
             break
+
     return inputValue
+
+
+def obtenerInputString(nombreValor):
+    while True:
+        inputValue = input('Ingrese %s: ' % nombreValor)
+
+        # Hacer un trim, y verificar que no sea string vacío
+        inputValue = inputValue.strip()
+
+        if not inputValue:
+            print("No puede ser vacío")
+        else:
+            return inputValue
 
 
 def funcionOrdenamientoPorPaloYValor(_carta):
@@ -107,6 +139,14 @@ def toLongString(_carta):
     return getValorCarta(_carta) + ' de ' + getPaloCartaLargo(_carta)
 
 
+def getPlayerName(_playerData):
+    return _playerData[0]
+
+
+def getPlayerIsIA(_playerData):
+    return _playerData[1]
+
+
 # Valores de las cartas y palos
 valoresCartas = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 # D = Diamante, C = Corazon, P = Picas, T = Trébol
@@ -125,15 +165,30 @@ cantidadJugadores = 3
 # cantidadJugadores = obtenerInputNumeroEntreValores("la cantidad de jugadores",
 #                                                    cantidadMinimaJugadores,
 #                                                    cantidadMaximaJugadores)
+playerData = []
 
 # Crear lista de cartas por jugador
 # Cada elemento en esta lista es una lista de las cartas de dicho jugador
 cartasPorJugador = []
 cartasEnMesa = []
 
-# Crear la lista de cartas de cada jugador
-for _ in range(cantidadJugadores):
-    cartasPorJugador.append([])
+cartasPorJugador.append([])
+cartasPorJugador.append([])
+cartasPorJugador.append([])
+playerData.append(("Nachiten", False))
+playerData.append(("JessiBot", True))
+playerData.append(("PedroBot", True))
+
+# Crear la lista de cartas, nombre y IA de cada jugador
+# for indexJugador in range(cantidadJugadores):
+#     cartasPorJugador.append([])
+#
+#     nombreJugador = obtenerInputString("el nombre del jugador %d" % (indexJugador + 1))
+#     esIAJugador = obtenerInputNumeroEntreValores("si el jugador %d es IA (1) o Humano (0)" % (indexJugador + 1), 0, 1)
+#
+#     esIaJugadorBool = True if esIAJugador == 1 else False
+#
+#     playerData.append((nombreJugador, esIaJugadorBool))
 
 # Repartir las cartas
 for indexCarta in range(cantidadCartasTotales):
@@ -150,15 +205,42 @@ while True:
     cartasPorJugador[indiceTurnoJugador] = ordenarCartas(cartasPorJugador[indiceTurnoJugador])
 
     while True:
-        # Se muestran las cartas de quien le toca jugar con índice
-        print('[Turno de: %s] Elija que carta jugar. Sus %d cartas son:' % (indiceTurnoJugador, cantidadCartasJugador))
-        printListaCartas(cartasPorJugador[indiceTurnoJugador], True)
+        # Ordenar la mesa
+        cartasEnMesa = ordenarCartas(cartasEnMesa)
 
-        # Pedir un index de la carta elegida, verificar que esté entre 0 y cantidadCartasJugador
-        # Volver a pedir el índice mientras no sea válido
-        indiceCartaElegida = obtenerInputNumeroEntreValores('el numero de la carta que desea jugar (-1 para pasar)',
-                                                            -1,
-                                                            cantidadCartasJugador - 1)
+        # Mostrar la mesa
+        print("Las cartas en la mesa son: ")
+        printListaCartas(cartasEnMesa)
+
+        playerEsIA = getPlayerIsIA(playerData[indiceTurnoJugador])
+        indiceCartaElegida = None
+
+        if playerEsIA:
+            # Se muestran las cartas de quien le toca jugar con índice
+            print('[Turno de: %s (%s)] Eligiendo de forma automática...' % (
+                getPlayerName(playerData[indiceTurnoJugador]),
+                'IA' if playerEsIA else 'Humano'))
+            print("Cartas en la mano de la IA:")
+            printListaCartas(cartasPorJugador[indiceTurnoJugador], True)
+
+            # Esperar 3 segundos
+            time.sleep(2)
+
+            # Calcular de forma automática el índice de carta elegida
+            indiceCartaElegida = calcularIndexIACartaElegida(cartasPorJugador[indiceTurnoJugador])
+        else:
+            # Se muestran las cartas de quien le toca jugar con índice
+            print('[Turno de: %s (%s)] Elija que carta jugar. Sus %d cartas son:' % (
+                getPlayerName(playerData[indiceTurnoJugador]),
+                'IA' if playerEsIA else 'Humano',
+                cantidadCartasJugador))
+            printListaCartas(cartasPorJugador[indiceTurnoJugador], True)
+
+            # Pedir un index de la carta elegida, verificar que esté entre 0 y cantidadCartasJugador
+            # Volver a pedir el índice mientras no sea válido
+            indiceCartaElegida = obtenerInputNumeroEntreValores('el numero de la carta que desea jugar (-1 para pasar)',
+                                                                -1,
+                                                                cantidadCartasJugador - 1)
 
         # Validar que sea correcto insertar esta carta
         cartasValidas = obtenerCartasValidasParaMesa()
@@ -186,13 +268,6 @@ while True:
             print("No se puede jugar esa carta, elija otra")
             print("Las cartas posibles para jugar son: ")
             printListaCartas(cartasValidas)
-
-    # Ordenar la mesa
-    cartasEnMesa = ordenarCartas(cartasEnMesa)
-
-    # Mostrar la mesa
-    print("Las cartas en la mesa son: ")
-    printListaCartas(cartasEnMesa)
 
     # Incrementar turno
     contadorTurnoJugador += 1
